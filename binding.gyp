@@ -28,7 +28,7 @@
 			],
 			"defines": [ 
 			"DFIXED_FRAME_MICROSECONDS=8500",
-			"RGB_SLOWDOWN_GPIO=1"
+			"RGB_SLOWDOWN_GPIO=2"
 			],
 
 			"libraries": ["-lrt", "-lm", "-lpthread"],
