@@ -34,6 +34,7 @@ LedMatrix::LedMatrix (int rows, int cols , int parallel_displays, int chained_di
 	defaults.parallel = parallel_displays; 
 	defaults.brightness = brightness;
 	defaults.hardware_mapping = mapping;
+	defaults.pwm_lsb_nanoseconds = 200;
 
 	assert(io.Init());
 	matrix = new RGBMatrix(&io, defaults);	
