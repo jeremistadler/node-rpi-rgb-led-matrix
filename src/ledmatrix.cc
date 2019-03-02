@@ -405,7 +405,7 @@ void LedMatrix::New(const Nan::FunctionCallbackInfo<Value>& args)
 	}
 
 	// make the matrix
-	LedMatrix* matrix = new LedMatrix(rows, cols, chained, parallel, brightness,  mapping.c_str());
+	LedMatrix* matrix = new LedMatrix(rows, cols, chained, parallel, brightness, lsb, mapping.c_str());
 	matrix->Wrap(args.This());
 
 	// return this object
