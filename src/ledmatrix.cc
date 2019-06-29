@@ -12,10 +12,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string> 
+#include <algorithm>
 
 #include <led-matrix.h>
 #include <ledmatrix.h>
 #include <graphics.h>
+
+#include <iostream>
 
 using namespace v8;
 using namespace node;
@@ -25,18 +28,39 @@ using rgb_matrix::GPIO;
 Nan::Persistent<v8::Function> LedMatrix::constructor;
 std::map<std::string, rgb_matrix::Font> LedMatrix::fontMap;
 
-LedMatrix::LedMatrix (int rows, int cols , int parallel_displays, int chained_displays, int brightness, int lsb, const char* mapping) 
+LedMatrix::LedMatrix (int rows, int cols , int parallel_displays, int chained_displays, int brightness, const char* mapping, const char* rgbseq, std::vector<std::string> flags) 
 {
+
+	//dump out flags into a vector of char* <CRRINNGGEEEEEE>
+	std::vector<char*> c_strs;
+	c_strs.push_back("bin");
+	for(auto &f : flags) //FIXED THIS BEING VALUE LOOP INSTEAD OF REFERENCE LOOP AAAAAAAAAAAAAHHHHHHHHHHHHHHHHHHHHHHHH
+	{
+		c_strs.push_back(&f[0]); //every known version of std::string uses continuos memory so this is safe~ 
+		std::cout << &f[0] << std::endl;
+	}
+
+	int num = c_strs.size();
+    char** d = c_strs.data();
+
 	RGBMatrix::Options defaults; 
+    rgb_matrix::RuntimeOptions runtime;
+
+
 	defaults.rows = rows;
 	defaults.cols = cols; 
 	defaults.chain_length = chained_displays;
 	defaults.parallel = parallel_displays; 
 	defaults.brightness = brightness;
 	defaults.hardware_mapping = mapping;
-	defaults.pwm_lsb_nanoseconds = lsb;
+	defaults.led_rgb_sequence = rgbseq;
+
+	std::cout << rgb_matrix::ParseOptionsFromFlags(&num, &d, &defaults, &runtime, true) << std::endl;
+	//temp debug output
+	//parse extra settings flags for POWER_USERS (TM)
 
 	assert(io.Init());
+	//matrix = CreateMatrixFromOptions(defaults, runtime);
 	matrix = new RGBMatrix(&io, defaults);	
 	matrix->set_luminance_correct(false);
 
@@ -377,6 +401,9 @@ void LedMatrix::New(const Nan::FunctionCallbackInfo<Value>& args)
 	int brightness = 100;
 	int lsb = 100;
 	std::string mapping = "regular";
+	std::string rgbSeq = "RGB";
+
+
 
 	if(args.Length() > 0 && args[0]->IsNumber()) {
 		rows = args[0]->ToInteger()->Value();
@@ -404,8 +431,30 @@ void LedMatrix::New(const Nan::FunctionCallbackInfo<Value>& args)
 		mapping = std::string(*str);
 	}
 
+	if(args.Length() > 6 && args[6]->IsString()) {
+
+		v8::String::Utf8Value str(args[6]->ToString());
+		rgbSeq = std::string(*str);
+	}
+
+	std::vector<std::string> strings; 
+
+	Handle<Value> val;
+	v8::Isolate* isolate = v8::Isolate::GetCurrent();
+	v8::HandleScope handle_scope(isolate);
+
+	if(args.Length() > 7 && args[7]->IsArray()) 
+	{
+		Handle<Array> jsArray = Handle<Array>::Cast(args[7]);
+		for(unsigned int i = 0; i < jsArray->Length(); i++)
+		{
+			val = jsArray->Get(v8::Integer::New(isolate, i));
+			strings.push_back(std::string( *String::Utf8Value(val)));		
+		}
+	}
+
 	// make the matrix
-	LedMatrix* matrix = new LedMatrix(rows, cols, chained, parallel, brightness, lsb, mapping.c_str());
+	LedMatrix* matrix = new LedMatrix(rows, cols, chained, parallel, brightness,  mapping.c_str(), rgbSeq.c_str(), strings);
 	matrix->Wrap(args.This());
 
 	// return this object
